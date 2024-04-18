@@ -16,7 +16,8 @@ from PyQt5.QtWidgets import (
     QDialog, 
     QDialogButtonBox,
     QComboBox,
-    QAbstractItemView
+    QAbstractItemView,
+    QCheckBox
 )
 from supabase import Client, create_client
 from product import Product
@@ -31,11 +32,18 @@ except Exception as e:
     print(f"[ERROR] Ошибка подключения к базе данных\n{e}")
     sys.exit()
 
+auto_refresh = True
+
 # Главное окно управления складом
 class StorageWindow(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.set_ui()
+
+        self.refresh()
+
+    def set_ui(self):
         self.setWindowTitle("Управление складом")
 
         layout = QGridLayout(self)
@@ -46,13 +54,6 @@ class StorageWindow(QWidget):
         self.refresh_button.setText("Обновить")
         self.refresh_button.clicked.connect(self.refresh)
         layout.addWidget(self.refresh_button, 0, 0)
-
-        # # Кнопка "Сохранить"
-        # self.save_button = QPushButton(self)
-        # self.save_button.setStyleSheet("font-size: 14px; background-color: #66de70; color: white;")
-        # self.save_button.setText("Сохранить")
-        # self.save_button.clicked.connect(self.save)
-        # layout.addWidget(self.save_button, 2, 0)
 
         # Кнопка "Добавить"
         self.add_button = QPushButton(self)
@@ -75,6 +76,10 @@ class StorageWindow(QWidget):
         self.remove_button.clicked.connect(self.remove)
         layout.addWidget(self.remove_button, 2, 1)
 
+        # Чекбокс автообновления при изменениях
+        # self.auto_refresh_checkbox = QCheckBox(self)
+        # self.auto_refresh_checkbox.setChecked(auto_refresh)
+
         # Таблица базы данных
         self.table = QTableWidget(self)
         self.table.setColumnCount(6) # Количество столбцов
@@ -89,9 +94,6 @@ class StorageWindow(QWidget):
         layout.addWidget(self.table, 1, 0)
 
         self.resize(1000, 800)
-
-        # AFTER INIT
-        self.refresh()
 
     # Обновление данных
     def refresh(self):
@@ -118,6 +120,7 @@ class StorageWindow(QWidget):
         else:
             print("No data")
     
+    # Добавление записи
     def add(self):
         dlg = AddDialog(self)
         if dlg.exec():
@@ -125,6 +128,7 @@ class StorageWindow(QWidget):
         else:
             print("Отмена добавления!")
 
+    # Удаление записи
     def remove(self):
         index = self.table.currentRow()
         print(f"index = {index}")
@@ -136,20 +140,36 @@ class StorageWindow(QWidget):
         else:
             print("Отмена удаления!")
 
+    # Редактирование записи
     def edit(self):
         index = self.table.currentRow()
         id = self.table.item(index, 0).text()
-        dlg = EditDialog(self, id)
+
+        res = supabase.table("delivers").select("deliver_id").eq("name", self.table.item(index, 4).text()).execute()
+        data = res.data
+        deliver_id = data[0]["deliver_id"]
+        print(f"[DEBUG] deliver_id = {deliver_id}")
+
+        product = Product()
+        product.name = self.table.item(index, 1).text(),
+        product.count = int(self.table.item(index, 2).text()),
+        product.type_of_count = self.table.item(index, 3).text(),
+        product.deliver_id = deliver_id,
+        product.last_delivery = self.table.item(index, 5).text()
+        dlg = EditDialog(self, id, product)
         if dlg.exec():
             print("Изменение товара выполенено!")
         else:
             print("Отмена изменения!")
 
-
+# Окно добавления записи
 class AddDialog(QDialog):
     def __init__(self):
         super().__init__()
 
+        self.set_ui()
+
+    def set_ui(self):
         self.setWindowTitle("Добавление товара")
 
         self.layout = QVBoxLayout()
@@ -226,17 +246,23 @@ class AddDialog(QDialog):
         else:
             print("Неправильно введён поставщик!")
 
-    
     def cancel_click(self):
         self.reject()
 
+# Окно редактирования записи
 class EditDialog(QDialog):
-    edited_product = Product()
+    old_product = Product()
 
-    def __init__(self, parent, id: int):
+    def __init__(
+            self,
+            parent,
+            id: int,
+            old_product: Product
+        ):
         super().__init__(parent)
 
         self.id = id
+        self.old_product = old_product
 
         self.setWindowTitle("Изменение товара")
 
@@ -288,7 +314,18 @@ class EditDialog(QDialog):
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
-    
+        self.show_info()
+
+    def show_info(self):
+        res = supabase.table("delivers").select("name").eq("deliver_id", self.old_product.deliver_id[0]).execute()
+        data = res.data
+        deliver_name = data[0]["name"]
+
+        self.name_box.setText(self.old_product.name[0])
+        self.count_box.setText(str(self.old_product.count[0]))
+        self.type_of_count_box.setCurrentText(str(self.old_product.type_of_count[0]))
+        self.deliver_box.setCurrentText(str(deliver_name))
+        self.last_delivery_box.setText(self.old_product.last_delivery)
 
     def save_click(self):
         res = supabase.table("delivers").select("deliver_id").eq("name", self.deliver_box.currentText()).execute()
@@ -310,6 +347,7 @@ class EditDialog(QDialog):
     def cancel_click(self):
         self.reject()
 
+# Окно удаление записи
 class RemoveDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
