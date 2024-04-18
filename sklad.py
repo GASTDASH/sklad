@@ -1,8 +1,23 @@
 # ПАРОЛЬ ДЛЯ БАЗЫ ДАННЫХ SUPABASE "SKLAD" - xUoCUJUHhsclS1YM
 
 import sys
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton, QLabel, QFileDialog, QGridLayout, QTableWidget, QTableWidgetItem, QDialog, QDialogButtonBox, QComboBox
+from PyQt5.QtWidgets import (
+    QApplication,
+    QWidget,
+    QVBoxLayout,
+    QTextEdit,
+    QLineEdit,
+    QPushButton,
+    QLabel,
+    QFileDialog,
+    QGridLayout,
+    QTableWidget,
+    QTableWidgetItem,
+    QDialog, 
+    QDialogButtonBox,
+    QComboBox,
+    QAbstractItemView
+)
 from supabase import Client, create_client
 
 # Подключение к базе данных Supabase
@@ -68,6 +83,8 @@ class StorageWindow(QWidget):
         self.table.setColumnWidth(1, 250)
         self.table.setColumnWidth(4, 140)
         self.table.setColumnWidth(5, 150)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         layout.addWidget(self.table, 1, 0)
 
         self.resize(1000, 800)
@@ -108,8 +125,12 @@ class StorageWindow(QWidget):
             print("Отмена добавления!")
 
     def remove(self):
+        index = self.table.currentRow()
+        print(f"index = {index}")
+        print(f"item value = {self.table.item(index, 0).text()}")
         dlg = RemoveDialog(self)
         if dlg.exec():
+            supabase.table("storage").delete().eq("id", self.table.item(index, 0).text()).execute()
             print("Удаление товара выполенено!")
         else:
             print("Отмена удаления!")
@@ -267,28 +288,29 @@ class EditDialog(QDialog):
         self.setLayout(self.layout)
 
     def save_click(self):
-        deliver = self.deliver_box.currentText()
-        res = supabase.table("delivers").select("deliver_id").eq("name", deliver).execute()
-        data = res.data
-        count = len(data)
+        # deliver = self.deliver_box.currentText()
+        # res = supabase.table("delivers").select("deliver_id").eq("name", deliver).execute()
+        # data = res.data
+        # count = len(data)
 
-        if count != 0:
-            id = data[0]["deliver_id"]
+        # if count != 0:
+        #     # id = data[0]["deliver_id"]
 
-            supabase.table("storage").insert(
-                {
-                    "name": self.name_box.text(),
-                    "count": self.count_box.text(),
-                    "type_of_count": self.type_of_count_box.currentText(),
-                    "deliver_id": id,
-                    "last_delivery": self.last_delivery_box.text()
-                }
-            ).execute()
+        #     # supabase.table("storage").insert(
+        #     #     {
+        #     #         "name": self.name_box.text(),
+        #     #         "count": self.count_box.text(),
+        #     #         "type_of_count": self.type_of_count_box.currentText(),
+        #     #         "deliver_id": id,
+        #     #         "last_delivery": self.last_delivery_box.text()
+        #     #     }
+        #     # ).execute()
 
-            self.accept()
-        else:
-            print("Неправильно введён поставщик!")
-
+        #     # self.accept()
+        #     pass
+        # else:
+        #     print("Неправильно введён поставщик!")
+        pass
     
     def cancel_click(self):
         self.reject()
