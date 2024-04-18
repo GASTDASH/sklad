@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
     QAbstractItemView
 )
 from supabase import Client, create_client
+from product import Product
 
 # Подключение к базе данных Supabase
 print("Подключение к базе данных Supabase...")
@@ -35,7 +36,7 @@ class StorageWindow(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Storage control")
+        self.setWindowTitle("Управление складом")
 
         layout = QGridLayout(self)
 
@@ -137,7 +138,8 @@ class StorageWindow(QWidget):
 
     def edit(self):
         index = self.table.currentRow()
-        dlg = EditDialog(self, index)
+        id = self.table.item(index, 0).text()
+        dlg = EditDialog(self, id)
         if dlg.exec():
             print("Изменение товара выполенено!")
         else:
@@ -229,10 +231,12 @@ class AddDialog(QDialog):
         self.reject()
 
 class EditDialog(QDialog):
-    def __init__(self, parent, index: int):
+    edited_product = Product()
+
+    def __init__(self, parent, id: int):
         super().__init__(parent)
 
-        self.index = index
+        self.id = id
 
         self.setWindowTitle("Изменение товара")
 
@@ -267,14 +271,11 @@ class EditDialog(QDialog):
 
         self.deliver_label = QLabel("Поставщик (полностью точное имя):")
         self.layout.addWidget(self.deliver_label)
-        # self.deliver_box = QLineEdit()
         self.deliver_box = QComboBox()
 
         res = supabase.table("delivers").select("name").execute()
         data = res.data
-        # delivers = list()
         for row in data:
-            # delivers.append(row["name"])
             self.deliver_box.addItem(row["name"])
 
         self.layout.addWidget(self.deliver_box)
@@ -287,30 +288,24 @@ class EditDialog(QDialog):
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
+    
+
     def save_click(self):
-        # deliver = self.deliver_box.currentText()
-        # res = supabase.table("delivers").select("deliver_id").eq("name", deliver).execute()
-        # data = res.data
-        # count = len(data)
+        res = supabase.table("delivers").select("deliver_id").eq("name", self.deliver_box.currentText()).execute()
+        data = res.data
+        deliver_id = data[0]["deliver_id"]
+        
+        supabase.table("storage").update(
+            {
+                "name": self.name_box.text(),
+                "count": self.count_box.text(),
+                "type_of_count": self.type_of_count_box.currentText(),
+                "deliver_id": deliver_id,
+                "last_delivery": self.last_delivery_box.text()
+            }
+        ).eq("id", self.id).execute()
 
-        # if count != 0:
-        #     # id = data[0]["deliver_id"]
-
-        #     # supabase.table("storage").insert(
-        #     #     {
-        #     #         "name": self.name_box.text(),
-        #     #         "count": self.count_box.text(),
-        #     #         "type_of_count": self.type_of_count_box.currentText(),
-        #     #         "deliver_id": id,
-        #     #         "last_delivery": self.last_delivery_box.text()
-        #     #     }
-        #     # ).execute()
-
-        #     # self.accept()
-        #     pass
-        # else:
-        #     print("Неправильно введён поставщик!")
-        pass
+        self.accept()
     
     def cancel_click(self):
         self.reject()
