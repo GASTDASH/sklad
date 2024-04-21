@@ -23,16 +23,19 @@ from supabase import Client, create_client
 from product import Product
 
 # Подключение к базе данных Supabase
-print("Подключение к базе данных Supabase...")
-url: str = "https://tengeuuasogbhjswdqsw.supabase.co"
-key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbmdldXVhc29nYmhqc3dkcXN3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxMzI1ODEzMiwiZXhwIjoyMDI4ODM0MTMyfQ.IZqo8V-91Gj3yZ_HEnXZCzlCuu8VxhxXu52BZwdVGxw"
-try:
-    supabase = create_client(url, key)
-except Exception as e:
-    print(f"[ERROR] Ошибка подключения к базе данных\n{e}")
-    sys.exit()
+def connect():
+    print("Подключение к базе данных Supabase...")
+    url: str = "https://tengeuuasogbhjswdqsw.supabase.co"
+    key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbmdldXVhc29nYmhqc3dkcXN3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxMzI1ODEzMiwiZXhwIjoyMDI4ODM0MTMyfQ.IZqo8V-91Gj3yZ_HEnXZCzlCuu8VxhxXu52BZwdVGxw"
+    try:
+        supabase = create_client(url, key)
+    except Exception as e:
+        print(f"[ERROR] Ошибка подключения к базе данных\n{e}")
+        sys.exit()
 
-auto_refresh = True
+    return supabase
+
+supabase = connect()
 
 # Главное окно управления складом
 class StorageWindow(QWidget):
@@ -53,7 +56,7 @@ class StorageWindow(QWidget):
         self.refresh_button.setStyleSheet("font-size: 14px; background-color: #43a4e6; color: white;")
         self.refresh_button.setText("Обновить")
         self.refresh_button.clicked.connect(self.refresh)
-        layout.addWidget(self.refresh_button, 0, 0)
+        layout.addWidget(self.refresh_button, 2, 0)
 
         # Кнопка "Добавить"
         self.add_button = QPushButton(self)
@@ -76,9 +79,19 @@ class StorageWindow(QWidget):
         self.remove_button.clicked.connect(self.remove)
         layout.addWidget(self.remove_button, 2, 1)
 
-        # Чекбокс автообновления при изменениях
-        # self.auto_refresh_checkbox = QCheckBox(self)
-        # self.auto_refresh_checkbox.setChecked(auto_refresh)
+        # Кнопка "+1"
+        self.plus_1_button = QPushButton(self)
+        self.plus_1_button.setStyleSheet("font-size: 14px; background-color: #66de70; color: white;")
+        self.plus_1_button.setText("+1")
+        self.plus_1_button.clicked.connect(self.plus_1)
+        layout.addWidget(self.plus_1_button, 4, 1)
+
+        # Кнопка "-1"
+        self.minus_1_button = QPushButton(self)
+        self.minus_1_button.setStyleSheet("font-size: 14px; background-color: #66de70; color: white;")
+        self.minus_1_button.setText("-1")
+        self.minus_1_button.clicked.connect(self.minus_1)
+        layout.addWidget(self.minus_1_button, 5, 1)
 
         # Таблица базы данных
         self.table = QTableWidget(self)
@@ -91,7 +104,7 @@ class StorageWindow(QWidget):
         self.table.setColumnWidth(5, 150)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
-        layout.addWidget(self.table, 1, 0)
+        layout.addWidget(self.table, 3, 0)
 
         self.resize(1000, 800)
 
@@ -130,12 +143,13 @@ class StorageWindow(QWidget):
 
     # Удаление записи
     def remove(self):
-        index = self.table.currentRow()
-        print(f"index = {index}")
-        print(f"item value = {self.table.item(index, 0).text()}")
+        # index = self.table.currentRow()
+        # print(f"index = {index}")
+        # print(f"item value = {self.table.item(index, 0).text()}")
+        id = self.get_selected_id()
         dlg = RemoveDialog(self)
         if dlg.exec():
-            supabase.table("storage").delete().eq("id", self.table.item(index, 0).text()).execute()
+            supabase.table("storage").delete().eq("id", id).execute()
             print("Удаление товара выполенено!")
         else:
             print("Отмена удаления!")
@@ -162,10 +176,37 @@ class StorageWindow(QWidget):
         else:
             print("Отмена изменения!")
 
+    # +1
+    def plus_1(self):
+        id = self.get_selected_id()
+        res = supabase.table("storage").select("count").eq("id", id).execute()
+        count = int(res.data[0]["count"])
+        supabase.table("storage").update(
+            {
+                "count": count + 1
+            }
+        ).eq("id", id).execute()
+
+    # -1
+    def minus_1(self):
+        id = self.get_selected_id()
+        res = supabase.table("storage").select("count").eq("id", id).execute()
+        count = int(res.data[0]["count"])
+        supabase.table("storage").update(
+            {
+                "count": count - 1
+            }
+        ).eq("id", id).execute()
+
+    # Получение id выбранного продукта
+    def get_selected_id(self):
+        index = self.table.currentRow()
+        return self.table.item(index, 0).text()
+
 # Окно добавления записи
 class AddDialog(QDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent):
+        super().__init__(parent)
 
         self.set_ui()
 
@@ -375,11 +416,13 @@ class RemoveDialog(QDialog):
     def no_click(self):
         self.reject()
 
+
 def main():
     app = QApplication(sys.argv)
     w = StorageWindow()
     w.show()
     sys.exit(app.exec_())
+
 
 if __name__ == '__main__':
     main()
