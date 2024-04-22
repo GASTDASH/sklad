@@ -51,10 +51,24 @@ class StorageWindow(QWidget):
 
         layout = QGridLayout(self)
 
+        self.search_text = QLabel(text="Введите запрос:")
+        layout.addWidget(self.search_text, 0, 0)
+
+        # Поле поиска
+        self.search_box = QLineEdit()
+        self.search_box.setFixedSize(300, 30)
+        layout.addWidget(self.search_box, 1, 0)
+
+        # # Кнопка поиска
+        # self.search_button = QPushButton(text="Найти")
+        # self.search_button.setFixedSize(300, 30)
+        # layout.addWidget(self.search_button, 1, 0)
+
         # Кнопка "Обновить"
         self.refresh_button = QPushButton(self)
         self.refresh_button.setStyleSheet("font-size: 14px; background-color: #43a4e6; color: white;")
-        self.refresh_button.setText("Обновить")
+        self.refresh_button.setText("Найти")
+        self.refresh_button.setFixedSize(300, 30)
         self.refresh_button.clicked.connect(self.refresh)
         layout.addWidget(self.refresh_button, 2, 0)
 
@@ -81,14 +95,14 @@ class StorageWindow(QWidget):
 
         # Кнопка "+1"
         self.plus_1_button = QPushButton(self)
-        self.plus_1_button.setStyleSheet("font-size: 14px; background-color: #66de70; color: white;")
+        self.plus_1_button.setStyleSheet("font-size: 14px; background-color: #3a64f0; color: white;")
         self.plus_1_button.setText("+1")
         self.plus_1_button.clicked.connect(self.plus_1)
         layout.addWidget(self.plus_1_button, 4, 1)
 
         # Кнопка "-1"
         self.minus_1_button = QPushButton(self)
-        self.minus_1_button.setStyleSheet("font-size: 14px; background-color: #66de70; color: white;")
+        self.minus_1_button.setStyleSheet("font-size: 14px; background-color: #3a64f0; color: white;")
         self.minus_1_button.setText("-1")
         self.minus_1_button.clicked.connect(self.minus_1)
         layout.addWidget(self.minus_1_button, 5, 1)
@@ -108,15 +122,25 @@ class StorageWindow(QWidget):
 
         self.resize(1000, 800)
 
-    # Обновление данных
-    def refresh(self):
-        res = supabase.table("storage").select("*").order("id", desc=True).execute()
+    # Поиск данных
+    def search(self, q: str):
+        if q == "*":
+            res = supabase.table("storage").select("*").order("id", desc=True).execute()
+        else:
+            res = supabase.table("storage").select("*").like("name", f"%{q}%").order("id", desc=True).execute()
         data = res.data
         count = len(data)
+        return data,count
 
+    # Обновление данных
+    def refresh(self):
+        if self.search_box.text().strip() == "" or self.search_box.text().strip() == "*":
+            data, count = self.search(q = "*")
+        else:
+            data, count = self.search(q = self.search_box.text().strip())
+
+        self.table.setRowCount(0)
         if count != 0:
-            self.table.setRowCount(0)
-
             i = 0
             for row in data:
                 res = supabase.table("delivers").select("name").eq("deliver_id", row["deliver_id"]).execute()
@@ -138,6 +162,7 @@ class StorageWindow(QWidget):
         dlg = AddDialog(self)
         if dlg.exec():
             print("Добавление товара выполенено!")
+            self.refresh()
         else:
             print("Отмена добавления!")
 
@@ -151,6 +176,7 @@ class StorageWindow(QWidget):
         if dlg.exec():
             supabase.table("storage").delete().eq("id", id).execute()
             print("Удаление товара выполенено!")
+            self.refresh()
         else:
             print("Отмена удаления!")
 
@@ -173,6 +199,7 @@ class StorageWindow(QWidget):
         dlg = EditDialog(self, id, product)
         if dlg.exec():
             print("Изменение товара выполенено!")
+            self.refresh()
         else:
             print("Отмена изменения!")
 
