@@ -149,7 +149,6 @@ class StorageWindow(QWidget):
                 self.table.setItem(i, 2, QTableWidgetItem(str(row["count"])))
                 self.table.setItem(i, 3, QTableWidgetItem(str(row["type_of_count"])))
                 self.table.setItem(i, 4, QTableWidgetItem(str(row["delivers"]["name"])))
-                # self.table.setItem(i, 4, QTableWidgetItem("deliver_name"))
                 self.table.setItem(i, 5, QTableWidgetItem(str(row["last_delivery"])))
             
         else:
