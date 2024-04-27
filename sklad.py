@@ -139,21 +139,10 @@ class StorageWindow(QWidget):
         else:
             data, count = self.search(q = self.search_box.text().strip())
         
-        # res = supabase.table("storage").select("*, delivers(name)").execute()
-        # data = res.data
-        # count = len(data)
-        
-        # for row in data:
-            # print(row)
-        # return
-
         self.table.setRowCount(0)
         if count != 0:
             i = 0
             for row in data:
-                # res = supabase.table("delivers").select("name").eq("deliver_id", row["deliver_id"]).execute()
-                # deliver_name = res.data[0]["name"]
-
                 self.table.insertRow(i)
                 self.table.setItem(i, 0, QTableWidgetItem(str(row["id"])))
                 self.table.setItem(i, 1, QTableWidgetItem(str(row["name"])))
