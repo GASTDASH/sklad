@@ -145,6 +145,8 @@ class StorageWindow(QWidget):
             for row in data:
                 res = supabase.table("delivers").select("name").eq("deliver_id", row["deliver_id"]).execute()
                 deliver_name = res.data[0]["name"]
+                
+                print("hello")
 
                 self.table.insertRow(i)
                 self.table.setItem(i, 0, QTableWidgetItem(str(row["id"])))
