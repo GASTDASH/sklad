@@ -125,9 +125,9 @@ class StorageWindow(QWidget):
     # Поиск данных
     def search(self, q: str):
         if q == "*":
-            res = supabase.table("storage").select("*").order("id", desc=True).execute()
+            res = supabase.table("storage").select("*, delivers(name)").order("id", desc=True).execute()
         else:
-            res = supabase.table("storage").select("*").like("name", f"%{q}%").order("id", desc=True).execute()
+            res = supabase.table("storage").select("*, delivers(name)").like("name", f"%{q}%").order("id", desc=True).execute()
         data = res.data
         count = len(data)
         return data,count
@@ -138,22 +138,29 @@ class StorageWindow(QWidget):
             data, count = self.search(q = "*")
         else:
             data, count = self.search(q = self.search_box.text().strip())
+        
+        # res = supabase.table("storage").select("*, delivers(name)").execute()
+        # data = res.data
+        # count = len(data)
+        
+        # for row in data:
+            # print(row)
+        # return
 
         self.table.setRowCount(0)
         if count != 0:
             i = 0
             for row in data:
-                res = supabase.table("delivers").select("name").eq("deliver_id", row["deliver_id"]).execute()
-                deliver_name = res.data[0]["name"]
-                
-                print("hello")
+                # res = supabase.table("delivers").select("name").eq("deliver_id", row["deliver_id"]).execute()
+                # deliver_name = res.data[0]["name"]
 
                 self.table.insertRow(i)
                 self.table.setItem(i, 0, QTableWidgetItem(str(row["id"])))
                 self.table.setItem(i, 1, QTableWidgetItem(str(row["name"])))
                 self.table.setItem(i, 2, QTableWidgetItem(str(row["count"])))
                 self.table.setItem(i, 3, QTableWidgetItem(str(row["type_of_count"])))
-                self.table.setItem(i, 4, QTableWidgetItem(str(deliver_name)))
+                self.table.setItem(i, 4, QTableWidgetItem(str(row["delivers"]["name"])))
+                # self.table.setItem(i, 4, QTableWidgetItem("deliver_name"))
                 self.table.setItem(i, 5, QTableWidgetItem(str(row["last_delivery"])))
             
         else:
