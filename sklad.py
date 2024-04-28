@@ -51,7 +51,7 @@ class StorageWindow(QWidget):
 
         layout = QGridLayout(self)
 
-        self.search_text = QLabel(text="Введите запрос:")
+        self.search_text = QLabel(text="Введите запрос:\n(оставьте пустое поле для полного списка)")
         layout.addWidget(self.search_text, 0, 0)
 
         # Поле поиска
@@ -59,12 +59,7 @@ class StorageWindow(QWidget):
         self.search_box.setFixedSize(300, 30)
         layout.addWidget(self.search_box, 1, 0)
 
-        # # Кнопка поиска
-        # self.search_button = QPushButton(text="Найти")
-        # self.search_button.setFixedSize(300, 30)
-        # layout.addWidget(self.search_button, 1, 0)
-
-        # Кнопка "Обновить"
+        # Кнопка "Найти"
         self.refresh_button = QPushButton(self)
         self.refresh_button.setStyleSheet("font-size: 14px; background-color: #43a4e6; color: white;")
         self.refresh_button.setText("Найти")
@@ -114,6 +109,13 @@ class StorageWindow(QWidget):
         self.check_low_count_button.clicked.connect(self.search_low_count_products)
         layout.addWidget(self.check_low_count_button, 4, 0)
 
+        # Кнопка переключения в управление поставками
+        self.supplies_button = QPushButton(self)
+        self.supplies_button.setStyleSheet("font-size: 14px; background-color: #3235BB")
+        self.supplies_button.setText("Перейти в управление поставками")
+        self.supplies_button.clicked.connect(self.supplies_window)
+        layout.addWidget(self.supplies_button, 5, 0)
+
         # Таблица базы данных
         self.table = QTableWidget(self)
         self.table.setColumnCount(6) # Количество столбцов
@@ -128,6 +130,12 @@ class StorageWindow(QWidget):
         layout.addWidget(self.table, 3, 0)
 
         self.resize(1000, 800)
+
+    # Управление поставками
+    def supplies_window(self):
+        self.w = SuppliesWindow()
+        self.w.show()
+        self.close()
 
     # Поиск данных
     def search(self, q: str):
@@ -488,6 +496,68 @@ class RemoveDialog(QDialog):
     
     def no_click(self):
         self.reject()
+
+#
+class SuppliesWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.set_ui()
+
+    def set_ui(self):
+        self.setWindowTitle("Управление поставками")
+
+        layout = QGridLayout(self)
+
+        # Кнопка "Добавить"
+        # self.add_button = QPushButton(self)
+        # self.add_button.setStyleSheet("font-size: 14px; background-color: #66de70; color: white;")
+        # self.add_button.setText("Добавить")
+        # self.add_button.clicked.connect(self.add)
+        # layout.addWidget(self.add_button, 0, 1)
+
+        # Кнопка "Изменить"
+        # self.edit_button = QPushButton(self)
+        # self.edit_button.setStyleSheet("font-size: 14px; background-color: #43a4e6; color: white;")
+        # self.edit_button.setText("Изменить")
+        # self.edit_button.clicked.connect(self.edit)
+        # layout.addWidget(self.edit_button, 1, 1)
+
+        # Кнопка "Удалить"
+        # self.remove_button = QPushButton(self)
+        # self.remove_button.setStyleSheet("font-size: 14px; background-color: #cf392b; color: white;")
+        # self.remove_button.setText("Удалить")
+        # self.remove_button.clicked.connect(self.remove)
+        # layout.addWidget(self.remove_button, 2, 1)
+
+        # Управление складом
+        self.storage_button = QPushButton(self)
+        self.storage_button.setStyleSheet("font-size: 14px; background-color: #3235BB; color: white;")
+        self.storage_button.setText("Перейти в управление складом")
+        self.storage_button.clicked.connect(self.storage_window)
+        layout.addWidget(self.storage_button, 4, 0)
+
+        # Таблица базы данных
+        self.table = QTableWidget(self)
+        self.table.setColumnCount(6) # Количество столбцов
+        self.table.setRowCount(1) # Количество строк
+        self.table.setHorizontalHeaderLabels(["id", "Наименование товара", "Поставщик", "Количество", "Дата отправления", "Дата прибытия"]) # Заголовки столбцов
+        self.table.setColumnWidth(0, 50)
+        self.table.setColumnWidth(1, 250)
+        self.table.setColumnWidth(2, 150)
+        self.table.setColumnWidth(3, 100)
+        self.table.setColumnWidth(4, 150)
+        self.table.setColumnWidth(5, 150)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
+        layout.addWidget(self.table, 3, 0)
+
+        self.resize(1000, 800)
+
+    def storage_window(self):
+        self.w = StorageWindow()
+        self.w.show()
+        self.close()
 
 
 def main():
