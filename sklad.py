@@ -107,6 +107,13 @@ class StorageWindow(QWidget):
         self.minus_1_button.clicked.connect(self.minus_1)
         layout.addWidget(self.minus_1_button, 5, 1)
 
+        # Кнопка проверки малого количества товара
+        self.check_low_count_button = QPushButton(self)
+        self.check_low_count_button.setStyleSheet("font-size: 14px; background-color: #8B3DE4")
+        self.check_low_count_button.setText("Проверить малое количество товара")
+        self.check_low_count_button.clicked.connect(self.search_low_count_products)
+        layout.addWidget(self.check_low_count_button, 4, 0)
+
         # Таблица базы данных
         self.table = QTableWidget(self)
         self.table.setColumnCount(6) # Количество столбцов
@@ -222,10 +229,52 @@ class StorageWindow(QWidget):
             }
         ).eq("id", id).execute()
 
+    # Поиск продуктов с малым количеством
+    def search_low_count_products(self):
+        dlg = LowCountDialog(self)
+        dlg.exec()
+
     # Получение id выбранного продукта
     def get_selected_id(self):
         index = self.table.currentRow()
         return self.table.item(index, 0).text()
+
+# Окно отображение товаров с малым количеством
+class LowCountDialog(QDialog):
+    text = str()
+
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.search()
+        self.set_ui()
+
+    def search(self):
+        self.text = ''
+
+        res = supabase.table('storage').select('id, name, count').lt('count', 100).execute()
+        data = res.data
+        count = len(data)
+
+        if count > 0:
+            self.text = 'Следующие товары нуждаются в заказе:\n\n'
+            for row in data:
+                self.text += f"- {row['name']} (id: {row['id']}), количество - {row['count']}\n"
+        else:
+            self.text = 'Все товары не нуждаются в заказе'
+
+    def set_ui(self):
+        self.setWindowTitle('Контроль запасов')
+
+        self.layout = QVBoxLayout()
+
+        QBtn = QDialogButtonBox.Ok
+        self.buttonBox = QDialogButtonBox(QBtn)
+        
+        self.label = QLabel(self.text)
+        self.layout.addWidget(self.label)
+
+        self.setLayout(self.layout)
 
 # Окно добавления записи
 class AddDialog(QDialog):
@@ -280,7 +329,7 @@ class AddDialog(QDialog):
 
         self.layout.addWidget(self.deliver_box)
 
-        self.last_delivery_label = QLabel("Дата последней поставки (в формате ГГГГ:ММ:ДД):")
+        self.last_delivery_label = QLabel("Дата последней поставки (в формате ГГГГ-ММ-ДД):")
         self.layout.addWidget(self.last_delivery_label)
         self.last_delivery_box = QLineEdit()
         self.layout.addWidget(self.last_delivery_box)
@@ -371,7 +420,7 @@ class EditDialog(QDialog):
 
         self.layout.addWidget(self.deliver_box)
 
-        self.last_delivery_label = QLabel("Дата последней поставки (в формате ГГГГ:ММ:ДД):")
+        self.last_delivery_label = QLabel("Дата последней поставки (в формате ГГГГ-ММ-ДД):")
         self.layout.addWidget(self.last_delivery_label)
         self.last_delivery_box = QLineEdit()
         self.layout.addWidget(self.last_delivery_box)
