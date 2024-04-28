@@ -104,14 +104,14 @@ class StorageWindow(QWidget):
 
         # Кнопка проверки малого количества товара
         self.check_low_count_button = QPushButton(self)
-        self.check_low_count_button.setStyleSheet("font-size: 14px; background-color: #8B3DE4")
+        self.check_low_count_button.setStyleSheet("font-size: 14px; background-color: #8B3DE4; color: white;")
         self.check_low_count_button.setText("Проверить малое количество товара")
         self.check_low_count_button.clicked.connect(self.search_low_count_products)
         layout.addWidget(self.check_low_count_button, 4, 0)
 
         # Кнопка переключения в управление поставками
         self.supplies_button = QPushButton(self)
-        self.supplies_button.setStyleSheet("font-size: 14px; background-color: #3235BB")
+        self.supplies_button.setStyleSheet("font-size: 14px; background-color: #3235BB; color: white;")
         self.supplies_button.setText("Перейти в управление поставками")
         self.supplies_button.clicked.connect(self.supplies_window)
         layout.addWidget(self.supplies_button, 5, 0)
