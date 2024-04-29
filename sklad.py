@@ -503,6 +503,7 @@ class SuppliesWindow(QWidget):
         super().__init__()
 
         self.set_ui()
+        self.refresh()
 
     def set_ui(self):
         self.setWindowTitle("Управление поставками")
@@ -558,6 +559,26 @@ class SuppliesWindow(QWidget):
         self.w = StorageWindow()
         self.w.show()
         self.close()
+
+    def refresh(self):
+        res = supabase.table('supplies').select('*, delivers(name), storage(name)').order("supply_id", desc=True).execute()
+        data = res.data
+        count = len(data)
+
+        self.table.setRowCount(0)
+        if count > 0:
+            i = 0
+            for row in data:
+                self.table.insertRow(i)
+                self.table.setItem(i, 0, QTableWidgetItem(str(row["supply_id"])))
+                self.table.setItem(i, 1, QTableWidgetItem(str(row["storage"]["name"])))
+                self.table.setItem(i, 2, QTableWidgetItem(str(row["delivers"]["name"])))
+                self.table.setItem(i, 3, QTableWidgetItem(str(row["count"])))
+                self.table.setItem(i, 4, QTableWidgetItem(str(row["date_start"])))
+                self.table.setItem(i, 5, QTableWidgetItem(str(row["date_end"])))
+            
+        else:
+            print("No data")
 
 
 def main():
