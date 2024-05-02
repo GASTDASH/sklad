@@ -120,7 +120,15 @@ class StorageWindow(QWidget):
         self.table = QTableWidget(self)
         self.table.setColumnCount(6) # Количество столбцов
         self.table.setRowCount(1) # Количество строк
-        self.table.setHorizontalHeaderLabels(["id", "Наименование товара", "Количество", "Тип кол-ва", "Поставщик", "Последняя поставка"]) # Заголовки столбцов
+        # Заголовки столбцов
+        self.table.setHorizontalHeaderLabels([
+            "id",
+            "Наименование товара",
+            "Количество",
+            "Тип кол-ва",
+            "Поставщик",
+            "Последняя поставка"
+        ])
         self.table.setColumnWidth(0, 50)
         self.table.setColumnWidth(1, 250)
         self.table.setColumnWidth(4, 140)
@@ -142,7 +150,8 @@ class StorageWindow(QWidget):
         if q == "*":
             res = supabase.table("storage").select("*, delivers(name)").order("id", desc=True).execute()
         else:
-            res = supabase.table("storage").select("*, delivers(name)").like("name", f"%{q}%").order("id", desc=True).execute()
+            # res = supabase.table("storage").select("*, delivers(name)").like("name", f"*{q}*").order("id", desc=True).execute()
+            res = supabase.table("storage").select("*, delivers(name)").ilike("name", f"*{q}*").order("id", desc=True).execute()
         data = res.data
         count = len(data)
         return data,count
@@ -184,36 +193,38 @@ class StorageWindow(QWidget):
         # print(f"index = {index}")
         # print(f"item value = {self.table.item(index, 0).text()}")
         id = self.get_selected_id()
-        dlg = RemoveDialog(self)
-        if dlg.exec():
-            supabase.table("storage").delete().eq("id", id).execute()
-            print("Удаление товара выполенено!")
-            self.refresh()
-        else:
-            print("Отмена удаления!")
+        if id:
+            dlg = RemoveDialog(self)
+            if dlg.exec():
+                supabase.table("storage").delete().eq("id", id).execute()
+                print("Удаление товара выполенено!")
+                self.refresh()
+            else:
+                print("Отмена удаления!")
 
     # Редактирование записи
     def edit(self):
         index = self.table.currentRow()
-        id = self.table.item(index, 0).text()
+        id = self.table.item(index, 0)
 
-        res = supabase.table("delivers").select("deliver_id").eq("name", self.table.item(index, 4).text()).execute()
-        data = res.data
-        deliver_id = data[0]["deliver_id"]
-        print(f"[DEBUG] deliver_id = {deliver_id}")
+        if id:
+            res = supabase.table("delivers").select("deliver_id").eq("name", self.table.item(index, 4).text()).execute()
+            data = res.data
+            deliver_id = data[0]["deliver_id"]
+            print(f"[DEBUG] deliver_id = {deliver_id}")
 
-        product = Product()
-        product.name = self.table.item(index, 1).text(),
-        product.count = int(self.table.item(index, 2).text()),
-        product.type_of_count = self.table.item(index, 3).text(),
-        product.deliver_id = deliver_id,
-        product.last_delivery = self.table.item(index, 5).text()
-        dlg = EditDialog(self, id, product)
-        if dlg.exec():
-            print("Изменение товара выполенено!")
-            self.refresh()
-        else:
-            print("Отмена изменения!")
+            product = Product()
+            product.name = self.table.item(index, 1).text(),
+            product.count = int(self.table.item(index, 2).text()),
+            product.type_of_count = self.table.item(index, 3).text(),
+            product.deliver_id = deliver_id,
+            product.last_delivery = self.table.item(index, 5).text()
+            dlg = EditDialog(self, id, product)
+            if dlg.exec():
+                print("Изменение товара выполенено!")
+                self.refresh()
+            else:
+                print("Отмена изменения!")
 
     # +1
     def plus_1(self):
@@ -245,7 +256,10 @@ class StorageWindow(QWidget):
     # Получение id выбранного продукта
     def get_selected_id(self):
         index = self.table.currentRow()
-        return self.table.item(index, 0).text()
+        try:
+            return self.table.item(index, 0).text()
+        except Exception as e:
+            return None
 
 # Окно отображение товаров с малым количеством
 class LowCountDialog(QDialog):
@@ -457,7 +471,7 @@ class EditDialog(QDialog):
         supabase.table("storage").update(
             {
                 "name": self.name_box.text(),
-                "count": self.count_box.text(),
+                "count": int(self.count_box.text()),
                 "type_of_count": self.type_of_count_box.currentText(),
                 "deliver_id": deliver_id,
                 "last_delivery": self.last_delivery_box.text()
@@ -503,6 +517,7 @@ class SuppliesWindow(QWidget):
         super().__init__()
 
         self.set_ui()
+        self.refresh()
 
     def set_ui(self):
         self.setWindowTitle("Управление поставками")
@@ -558,6 +573,26 @@ class SuppliesWindow(QWidget):
         self.w = StorageWindow()
         self.w.show()
         self.close()
+
+    def refresh(self):
+        res = supabase.table('supplies').select('*, delivers(name), storage(name)').order("supply_id", desc=True).execute()
+        data = res.data
+        count = len(data)
+
+        self.table.setRowCount(0)
+        if count > 0:
+            i = 0
+            for row in data:
+                self.table.insertRow(i)
+                self.table.setItem(i, 0, QTableWidgetItem(str(row["supply_id"])))
+                self.table.setItem(i, 1, QTableWidgetItem(str(row["storage"]["name"])))
+                self.table.setItem(i, 2, QTableWidgetItem(str(row["delivers"]["name"])))
+                self.table.setItem(i, 3, QTableWidgetItem(str(row["count"])))
+                self.table.setItem(i, 4, QTableWidgetItem(str(row["date_start"])))
+                self.table.setItem(i, 5, QTableWidgetItem(str(row["date_end"])))
+            
+        else:
+            print("No data")
 
 
 def main():
